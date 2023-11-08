@@ -11,7 +11,7 @@ def handle_message_events(body, logger, client):
     logger.info(body)
     ts = body['event']['ts']
     channel = body['event']['channel']
-    icons = ['thumbsup', 'tada', 'rocket']
+    icons = ['thumbsup', 'tada', 'rocket', 'inoki', 'toukon', 'thumbsup_all', 'sasuga']
 
     client.reactions_add(
         channel=channel,
