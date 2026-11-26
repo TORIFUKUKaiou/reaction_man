@@ -8,10 +8,16 @@ Slackの設定や制作意図は以下をご参照ください。
 元氣があればなんでもできる！  
 
 動かし方は以下の通りです。[Docker](https://www.docker.com/)を使います。  
+依存は [uv](https://docs.astral.sh/uv/) の `pyproject.toml` と `uv.lock` で管理しています（Python 3.14 以上）。  
+
+トークンはコマンドの行に直接書かず、権限を絞ったファイル（例：`chmod 600 .env`）から渡します。`.env` はコミットしません。  
+
+```
+SLACK_BOT_TOKEN={your SLACK_BOT_TOKEN}
+SLACK_APP_TOKEN={your SLACK_APP_TOKEN}
+```
 
 ```bash
 docker buildx build -t reaction_man ./
-docker run -d --rm \
--e SLACK_BOT_TOKEN={your SLACK_BOT_TOKEN} \
--e SLACK_APP_TOKEN={your SLACK_APP_TOKEN} reaction_man
+docker run -d --name reaction_man --restart unless-stopped --env-file .env reaction_man
 ```

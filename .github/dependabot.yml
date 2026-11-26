@@ -1,0 +1,41 @@
+version: 2
+registries:
+  takumi_guard_pypi:
+    type: python-index
+    url: https://pypi.flatt.tech/simple/
+    token: ${{secrets.TAKUMI_GUARD_TOKEN}}
+
+updates:
+  # 1. Python のパッケージ管理（uv.lock）
+  - package-ecosystem: "uv"
+    directory: "/"
+    registries:
+      - takumi_guard_pypi
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 5
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 7
+
+  # 2. ベースイメージ（Dockerfile の FROM）
+  - package-ecosystem: "docker"
+    directory: "/"
+    ignore:
+      # Python 本体（3.14 → 3.15 など）は上げない。.python-version と CI に合わせて手で上げる。
+      - dependency-name: "python"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 5
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 7
+
+  # 3. GitHub Actions の管理
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
