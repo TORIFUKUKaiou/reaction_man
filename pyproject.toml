@@ -1,0 +1,16 @@
+[project]
+name = "reaction-man"
+version = "0.1.0"
+description = "Slack の書き込みにとにかく好リアクションをするボット"
+requires-python = ">=3.14"
+dependencies = [
+    "slack-bolt>=1.30.0",
+]
+
+[[tool.uv.index]]
+url = "https://pypi.flatt.tech/simple/"
+default = true
+
+[tool.uv]
+# 公開から7日たっていないリリースは使わない（手元の ~/.config/uv/uv.toml と同じ条件）
+exclude-newer = "7 days"
