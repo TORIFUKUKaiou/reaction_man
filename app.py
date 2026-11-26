@@ -7,11 +7,12 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 
 @app.event("message")
-def handle_message_events(body, logger, client):
+def handle_message_events(body, logger, client, ack):
+    ack()
     logger.info(body)
     ts = body['event']['ts']
     channel = body['event']['channel']
-    icons = ['thumbsup', 'tada', 'rocket']
+    icons = ['thumbsup', 'tada', 'rocket', 'ex', 'sasuga']
 
     client.reactions_add(
         channel=channel,
