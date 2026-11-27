@@ -58,6 +58,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      actions: write # マージしたあとにデプロイを起動する
     steps:
       # Never checkout PR code, run package scripts, or restore PR caches here.
       - name: Verify Dependabot metadata
@@ -67,6 +68,7 @@ jobs:
           github-token: ${{ github.token }}
 
       - name: Merge minor and patch updates automatically
+        id: merge
         if: >-
           steps.metadata.outputs.update-type == 'version-update:semver-minor' ||
           steps.metadata.outputs.update-type == 'version-update:semver-patch'
@@ -76,3 +78,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_URL: ${{ github.event.pull_request.html_url }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+
+      # GITHUB_TOKEN でのマージでは push のワークフローが起動しないので、明示的に起動する。
+      # マージのあとで起動に失敗したら、main で Deploy を手で実行する。
+      - name: Deploy main after merge
+        if: steps.merge.outcome == 'success'
+        run: gh workflow run deploy.yml --repo "$GH_REPO" --ref main
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}

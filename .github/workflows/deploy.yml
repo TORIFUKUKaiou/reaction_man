@@ -1,0 +1,65 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # 手で実行するときと、Dependabot の自動マージのあとに起動するとき
+
+# 同じサービスへのデプロイを直列にし、実行中のものは中断しない。
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+permissions:
+  id-token: write # AWS の OIDC に必要
+  contents: read
+
+env:
+  AWS_REGION: us-west-2
+  ECR_REPOSITORY: reaction-man
+  ECS_CLUSTER: internal-tools-potaufeu
+  ECS_SERVICE: reaction-man
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # 待たされたあとは最新の main を使い、古い起動で巻き戻さない。
+          ref: main
+          persist-credentials: false
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # タグは latest とコミットの SHA。タスク定義は latest を指す。
+      - name: Build and push image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          image="$REGISTRY/$ECR_REPOSITORY"
+          sha="$(git rev-parse HEAD)"
+          docker build --pull -t "$image:latest" -t "$image:$sha" .
+          docker push --all-tags "$image"
+
+      # ECS は ECR を見張っていないので、サービスを入れ替えて新しい latest を取らせる。
+      # 初回（アプリのスタックを作る前）は、サービスがないのでここで失敗する。
+      - name: Replace ECS service
+        run: >-
+          aws ecs update-service
+          --cluster "$ECS_CLUSTER"
+          --service "$ECS_SERVICE"
+          --force-new-deployment
+          --query service.serviceName
+          --output text
